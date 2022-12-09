@@ -1,11 +1,11 @@
-# Import Module
-from tkinter import Tk, Canvas, Button, Label, filedialog, Frame, YES, NO, BOTH
+from tkinter import Tk, Canvas, Button, Menu, Label, filedialog, Frame, YES, NO, BOTH
 from PIL import ImageTk, Image
 from PIL.ImageTk import PhotoImage
+import csv
 
-TITLE = "Welcome to GeekForGeeks"
+TITLE = "Roche Tissue Image"
 IMAGE_PATH = "Pytorch-UNet-master/Tissue_Images"
-DEFAULT_IMAGE_PATH = "resources/roche.png"
+# DEFAULT_IMAGE_PATH = "resources/roche.png"
 
 
 def canvas_to_image_cords(canvas: Canvas, x: int, y: int, image: PhotoImage, tag_or_id=''):
@@ -27,6 +27,14 @@ def canvas_to_image_cords(canvas: Canvas, x: int, y: int, image: PhotoImage, tag
     return req_x, req_y
 
 
+def export(file_path, data, fields=None):
+    with open(file_path, "w") as f:
+        write = csv.writer(f)
+        if fields:
+            write.writerow(fields)
+        write.writerows(data)
+
+
 class MyGUI(object):
 
     def __init__(self):
@@ -42,34 +50,43 @@ class MyGUI(object):
         self.image = None
         self.image_path = None
         self.image_canvas_object = None
-        # self.open_image_path(DEFAULT_IMAGE_PATH)
 
         self.buttons = self.create_buttons()
-        # self.labels = self.create_labels()
+        self.menu = self.create_menu()
+        self.root.config(menu=self.menu)
 
+        self.coordinates = []
         self.bind_click_event()
         self.update()
         self.root.mainloop()
 
     def bind_click_event(self):
         def callback(event):
-            # print("[Canvas] clicked at", event.x, event.y)
             coordinate = canvas_to_image_cords(self.canvas, event.x, event.y, self.image)
             print("Coordinate:", coordinate, "RGB:", self.pil_image.getpixel(coordinate))
+            self.coordinates.append(coordinate)
 
         self.canvas.bind("<Button-1>", callback)
 
+    def create_menu(self):
+        menubar = Menu(self.root)
+        file = Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="File", menu=file)
+        file.add_command(label="Open...", command=self.open_image)
+        file.add_separator()
+        file.add_command(label="Export coordinates to CSV...", command=self.export_coordinates_to_csv)
+        return menubar
+
     def create_buttons(self):
         buttons = dict()
-        buttons["open"] = Button(self.root, text="Open File", command=lambda: self.open_image())
+        # buttons["open"] = Button(self.root, text="Open File", command=lambda: self.open_image())
+        buttons["export"] = Button(self.root, text="Export",
+                                   command=lambda: self.export_coordinates_to_csv(use_filedialog=False))
         return buttons
-
-    # def create_labels(self):
-    #     labels = dict()
-    #     return labels
 
     def open_image(self):
 
+        self.coordinates.clear()
         self.image_path = filedialog.askopenfilename(initialdir=IMAGE_PATH, title="Tissue Images",
                                                      filetypes=(("All files", "*.*"), ("tiff", "*.tiff")))
         self.open_image_path(self.image_path)
@@ -87,8 +104,16 @@ class MyGUI(object):
         for btn in self.buttons.values():
             btn.pack()
 
-        # for label in self.labels.values():
-        #     label.pack()
+    def export_coordinates_to_csv(self, use_filedialog=True):
+
+        file_path = "./output.csv"
+        if use_filedialog:
+            default_extension = [("csv file(*.csv)", "*.csv"), ('All tyes(*.*)', '*.*'), ]
+            file_path = filedialog.asksaveasfilename(filetypes=default_extension, defaultextension=default_extension)
+
+        fields = ['X', 'Y']
+        export(file_path, self.coordinates, fields)
+        print("Save POIs coordinates to", file_path)
 
 
 if __name__ == "__main__":
