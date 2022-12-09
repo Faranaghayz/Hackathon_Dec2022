@@ -1,7 +1,1 @@
-matplotlib
-numpy
-Pillow
-torch
-torchvision
-tqdm
-wandb
+Pillow==9.3.0
