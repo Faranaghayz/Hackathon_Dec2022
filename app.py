@@ -6,15 +6,13 @@ from PIL.ImageTk import PhotoImage
 import csv
 
 # Configurable fields
-APP_TITLE = "Roche Tissue Image"
-DEFAULT_FOLDER = "Pytorch-UNet-master/Tissue_Images"
+APP_TITLE = "[Roche] Tissue Image POI Selector (TIPS)"
+DEFAULT_FOLDER = "C:/Users/aghaeif/Documents/Hackathon_Dec2022/Pytorch-UNet-master/Tissue_Images"
 DEFAULT_CSV_FILE_PATH = "./coordinates.csv"
 DEFAULT_MARK_COLOR = "#43FF33"
 
 
-# DEFAULT_IMAGE_PATH = "resources/roche.png"
-
-
+# Utilities
 def canvas_to_image_cords(canvas: Canvas, x: int, y: int, image: PhotoImage, tag_or_id=''):
     if not canvas or not image:
         return
@@ -105,6 +103,8 @@ class MyGUI(object):
         file.add_command(label="Open...", command=self.open_image)
         file.add_separator()
         file.add_command(label="Export coordinates to CSV...", command=self.export_coordinates_to_csv)
+        file.add_separator()
+        file.add_command(label="Exit", command=self.root.destroy)
         return menubar
 
     def create_buttons(self):
@@ -112,16 +112,21 @@ class MyGUI(object):
         # buttons["open"] = Button(self.root, text="Open File", command=lambda: self.open_image())
         buttons["export"] = Button(self.root, text="Export",
                                    command=lambda: self.export_coordinates_to_csv(use_filedialog=False))
+        buttons["clear"] = Button(self.root, text="Clear Marks", command=self.clear)
         return buttons
 
     def open_image(self):
         self.image_path = filedialog.askopenfilename(initialdir=DEFAULT_FOLDER, title="Tissue Images",
                                                      filetypes=(("All files", "*.*"), ("tiff", "*.tiff")))
+
+        if not self.image_path:
+            print("Abort Open Image.")
+            return
+
         print("Open image file:", self.image_path)
         self.open_image_path(self.image_path)
 
-        self.coordinates.clear()
-        self.clear_canvas_drawings()
+        self.clear()
         self.update()
 
     def open_image_path(self, file_path):
@@ -131,6 +136,10 @@ class MyGUI(object):
             self.canvas.itemconfig(self.image_canvas_object, image=self.image)
         else:
             self.image_canvas_object = self.canvas.create_image(0, 0, image=self.image, anchor="nw")
+
+    def clear(self):
+        self.coordinates.clear()
+        self.clear_canvas_drawings()
 
     def clear_canvas_drawings(self):
         for x in self.drawings:
@@ -142,10 +151,16 @@ class MyGUI(object):
 
     def export_coordinates_to_csv(self, use_filedialog=True):
 
-        file_path = DEFAULT_CSV_FILE_PATH
+        file_path = "./coordinates.csv"
         if use_filedialog:
             default_extension = [("csv file(*.csv)", "*.csv"), ('All tyes(*.*)', '*.*'), ]
-            file_path = filedialog.asksaveasfilename(filetypes=default_extension, defaultextension=default_extension)
+            file_path = filedialog.asksaveasfilename(initialdir="./", title="Export POI Coordinates",
+                                                     filetypes=default_extension,
+                                                     defaultextension=default_extension)
+
+            if not file_path:
+                print("Abort export CSV")
+                return
 
         fields = ['X', 'Y']
         export(file_path, self.coordinates, fields)
